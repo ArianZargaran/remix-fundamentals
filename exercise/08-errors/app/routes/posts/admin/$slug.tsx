@@ -3,10 +3,13 @@ import { json, redirect } from "@remix-run/node";
 import {
   Form,
   useActionData,
+  useCatch,
   useLoaderData,
+  useParams,
   useTransition,
 } from "@remix-run/react";
 import invariant from "tiny-invariant";
+import { ErrorFallback } from "~/components";
 
 import {
   createPost,
@@ -22,7 +25,9 @@ export async function loader({ params }: LoaderArgs) {
   }
 
   const post = await getPost(params.slug);
-  invariant(post, `Post not found: ${params.slug}`);
+  if(!post) {
+    throw new Response('not found', { status: 404 });
+  }
   return json({ post });
 }
 
@@ -152,5 +157,19 @@ export default function PostAdmin() {
   );
 }
 
-// 🐨 Add an ErrorBoundary component to this
-// 💰 You can use the ErrorFallback component from "~/components"
+export function ErrorBoundary({ error }: { error: Error }) {
+  console.error(error);
+
+  return <ErrorFallback>Something went wrong!</ErrorFallback>
+}
+
+export function CatchBoundary() {
+  const caught = useCatch();
+  const params = useParams();
+
+  if (caught.status === 404) {
+    return <ErrorFallback>No posts found for the slug: "{params.slug}"</ErrorFallback>
+  }
+
+  throw new Error(`Unhandled response status: ${caught.status}`)
+}

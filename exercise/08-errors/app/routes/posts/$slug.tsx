@@ -1,10 +1,11 @@
 import { marked } from "marked";
 import type { LoaderArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
+import { useCatch, useLoaderData, useParams } from "@remix-run/react";
 import invariant from "tiny-invariant";
 
 import { getPost } from "~/models/post.server";
+import { ErrorFallback } from "~/components";
 
 export async function loader({ params }: LoaderArgs) {
   invariant(params.slug, `params.slug is required`);
@@ -26,5 +27,19 @@ export default function PostSlug() {
   );
 }
 
-// 🐨 Add an ErrorBoundary component to this
-// 💰 You can use the ErrorFallback component from "~/components"
+export function ErrorBoundary({ error }: { error: Error }) {
+  console.error(error);
+
+  return <div>Unexpected error: {error.message}</div>
+}
+
+export function CatchBoundary() {
+  const caught = useCatch();
+  const params = useParams();
+
+  if (caught.status === 404) {
+    return <ErrorFallback>No posts found for the slug: "{params.slug}"</ErrorFallback>
+  }
+
+  throw new Error(`Unhandled response status: ${caught.status}`)
+}
